@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import KnowledgeAdmin from "./pages/admin/KnowledgeAdmin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -43,9 +44,9 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/admin/knowledge" element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <KnowledgeAdmin />
-              </ProtectedRoute>
+              </AdminRoute>
             } />
             <Route path="/profile" element={
               <ProtectedRoute>

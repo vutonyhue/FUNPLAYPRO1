@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { Button } from '@/components/ui/button';
 import { AngelLogo } from '@/components/ui/AngelLogo';
 import { 
@@ -10,7 +11,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  Shield
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -22,8 +24,13 @@ const navItems = [
   { path: '/profile', label: 'Profile', icon: User, protected: true },
 ];
 
+const adminNavItems = [
+  { path: '/admin/knowledge', label: 'Admin', icon: Shield, protected: true, adminOnly: true },
+];
+
 export function Navigation() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -33,6 +40,7 @@ export function Navigation() {
   };
 
   const filteredNavItems = navItems.filter(item => !item.protected || user);
+  const filteredAdminItems = isAdmin ? adminNavItems : [];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
@@ -57,6 +65,26 @@ export function Navigation() {
                     size="sm"
                     className={cn(
                       "gap-2",
+                      isActive && "glow-gold"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
+            {filteredAdminItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link key={item.path} to={item.path}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "gap-2 text-amber-600",
                       isActive && "glow-gold"
                     )}
                   >
@@ -119,6 +147,26 @@ export function Navigation() {
                     <Button
                       variant={isActive ? "default" : "ghost"}
                       className="w-full justify-start gap-2"
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                );
+              })}
+              {filteredAdminItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                
+                return (
+                  <Link 
+                    key={item.path} 
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button
+                      variant={isActive ? "default" : "ghost"}
+                      className="w-full justify-start gap-2 text-amber-600"
                     >
                       <Icon className="h-4 w-4" />
                       {item.label}

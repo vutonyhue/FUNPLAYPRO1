@@ -1,0 +1,255 @@
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  wallet_address: string | null;
+  total_camly_rewards: number;
+  pending_rewards: number;
+  approved_reward: number;
+  banned: boolean;
+  banned_at: string | null;
+  ban_reason: string | null;
+  violation_level: number;
+  avatar_verified: boolean;
+  created_at: string;
+  // Computed stats
+  posts_count?: number;
+  comments_count?: number;
+  likes_received?: number;
+  videos_count?: number;
+}
+
+export interface WalletGroup {
+  wallet_address: string;
+  users: AdminUser[];
+  total_pending: number;
+  total_approved: number;
+}
+
+export const useAdminManage = () => {
+  const { user } = useAuth();
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      // Fetch all profiles
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch video counts per user
+      const { data: videoCounts } = await supabase
+        .from("videos")
+        .select("user_id");
+
+      // Fetch comment counts per user
+      const { data: commentCounts } = await supabase
+        .from("comments")
+        .select("user_id");
+
+      // Create counts map
+      const videoCountMap: Record<string, number> = {};
+      const commentCountMap: Record<string, number> = {};
+
+      videoCounts?.forEach((v) => {
+        videoCountMap[v.user_id] = (videoCountMap[v.user_id] || 0) + 1;
+      });
+
+      commentCounts?.forEach((c) => {
+        commentCountMap[c.user_id] = (commentCountMap[c.user_id] || 0) + 1;
+      });
+
+      const enrichedUsers = profiles?.map((p) => ({
+        ...p,
+        pending_rewards: p.pending_rewards || 0,
+        approved_reward: p.approved_reward || 0,
+        banned: p.banned || false,
+        violation_level: p.violation_level || 0,
+        avatar_verified: p.avatar_verified || false,
+        videos_count: videoCountMap[p.id] || 0,
+        comments_count: commentCountMap[p.id] || 0,
+      })) as AdminUser[];
+
+      setUsers(enrichedUsers || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Computed statistics
+  const stats = useMemo(() => {
+    const pending = users.filter((u) => (u.pending_rewards || 0) > 0);
+    const banned = users.filter((u) => u.banned);
+    const approved = users.filter((u) => (u.approved_reward || 0) > 0);
+
+    return {
+      totalUsers: users.length,
+      pendingCount: pending.length,
+      bannedCount: banned.length,
+      approvedCount: approved.length,
+      totalPending: pending.reduce((sum, u) => sum + (u.pending_rewards || 0), 0),
+      totalApproved: approved.reduce((sum, u) => sum + (u.approved_reward || 0), 0),
+    };
+  }, [users]);
+
+  // Shared wallet detection
+  const walletGroups = useMemo((): WalletGroup[] => {
+    const groups: Record<string, AdminUser[]> = {};
+
+    users.forEach((user) => {
+      if (user.wallet_address) {
+        const wallet = user.wallet_address.toLowerCase();
+        if (!groups[wallet]) groups[wallet] = [];
+        groups[wallet].push(user);
+      }
+    });
+
+    return Object.entries(groups)
+      .filter(([_, users]) => users.length > 1)
+      .map(([wallet, users]) => ({
+        wallet_address: wallet,
+        users,
+        total_pending: users.reduce((sum, u) => sum + (u.pending_rewards || 0), 0),
+        total_approved: users.reduce((sum, u) => sum + (u.approved_reward || 0), 0),
+      }));
+  }, [users]);
+
+  // Suspicion score calculation
+  const getSuspicionScore = (u: AdminUser): number => {
+    let score = 0;
+
+    if ((u.pending_rewards || 0) > 5000000) score += 40;
+    else if ((u.pending_rewards || 0) > 2000000) score += 20;
+
+    if (!u.avatar_url) score += 15;
+    if (!u.display_name || u.display_name.length < 3) score += 15;
+    if ((u.violation_level || 0) > 0) score += 25;
+    if ((u.videos_count || 0) === 0 && (u.pending_rewards || 0) > 100000) score += 20;
+    if (!u.avatar_verified) score += 10;
+
+    return Math.min(score, 100);
+  };
+
+  // Fake name detection
+  const isFakeName = (name: string | null): boolean => {
+    if (!name) return true;
+    const trimmed = name.trim();
+    if (trimmed.length < 3) return true;
+    if (/^\d+$/.test(trimmed)) return true;
+    if (/^[a-z]{1,4}\d{5,}$/i.test(trimmed)) return true;
+    if (/^(test|user|admin|guest|demo)\d*$/i.test(trimmed)) return true;
+    return false;
+  };
+
+  // Actions
+  const banUser = async (userId: string, reason: string = "Lạm dụng hệ thống") => {
+    if (!user) return false;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.rpc("ban_user_permanently", {
+        p_admin_id: user.id,
+        p_user_id: userId,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Error banning user:", error);
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const unbanUser = async (userId: string) => {
+    if (!user) return false;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.rpc("unban_user", {
+        p_admin_id: user.id,
+        p_user_id: userId,
+      });
+      if (error) throw error;
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Error unbanning user:", error);
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const approveReward = async (userId: string, note?: string) => {
+    if (!user) return false;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.rpc("approve_user_reward", {
+        p_user_id: userId,
+        p_admin_id: user.id,
+        p_note: note || null,
+      });
+      if (error) throw error;
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Error approving reward:", error);
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const rejectReward = async (userId: string, note?: string) => {
+    if (!user) return false;
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.rpc("reject_user_reward", {
+        p_user_id: userId,
+        p_admin_id: user.id,
+        p_note: note || null,
+      });
+      if (error) throw error;
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Error rejecting reward:", error);
+      return false;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  return {
+    users,
+    loading,
+    actionLoading,
+    stats,
+    walletGroups,
+    getSuspicionScore,
+    isFakeName,
+    banUser,
+    unbanUser,
+    approveReward,
+    rejectReward,
+    refetch: fetchUsers,
+  };
+};

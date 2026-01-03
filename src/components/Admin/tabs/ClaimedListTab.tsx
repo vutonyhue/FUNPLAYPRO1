@@ -26,7 +26,6 @@ interface ClaimRecord {
   processed_at: string | null;
   profile?: {
     display_name: string | null;
-    username: string;
     avatar_url: string | null;
   };
 }
@@ -46,24 +45,38 @@ const ClaimedListTab = () => {
 
       if (error) {
         console.error("Error fetching claims:", error);
+        setLoading(false);
         return;
       }
 
-      // Fetch profiles for users
+      // Fetch profiles for users - use user_id to match
       const userIds = [...new Set(data?.map((c) => c.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, username, avatar_url")
-        .in("id", userIds);
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url")
+          .in("user_id", userIds);
 
-      const profileMap = new Map(profiles?.map((p) => [p.id, p]));
+        const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
 
-      const enrichedClaims = data?.map((c) => ({
-        ...c,
-        profile: profileMap.get(c.user_id),
-      })) as ClaimRecord[];
+        const enrichedClaims = data?.map((c) => ({
+          id: c.id,
+          user_id: c.user_id,
+          amount: Number(c.amount),
+          wallet_address: c.wallet_address,
+          status: c.status,
+          tx_hash: c.tx_hash,
+          created_at: c.created_at,
+          processed_at: c.processed_at,
+          profile: profileMap.get(c.user_id),
+        })) as ClaimRecord[];
 
-      setClaims(enrichedClaims || []);
+        setClaims(enrichedClaims || []);
+      } else {
+        setClaims([]);
+      }
+      
       setLoading(false);
     };
 
@@ -71,7 +84,7 @@ const ClaimedListTab = () => {
   }, []);
 
   const completedClaims = useMemo(() => {
-    return claims.filter((c) => c.status === "completed" || c.tx_hash);
+    return claims.filter((c) => c.status === "completed" || c.status === "success" || c.tx_hash);
   }, [claims]);
 
   const filteredClaims = useMemo(() => {
@@ -80,7 +93,6 @@ const ClaimedListTab = () => {
     return completedClaims.filter(
       (c) =>
         c.profile?.display_name?.toLowerCase().includes(term) ||
-        c.profile?.username?.toLowerCase().includes(term) ||
         c.wallet_address?.toLowerCase().includes(term)
     );
   }, [completedClaims, searchTerm]);
@@ -177,18 +189,18 @@ const ClaimedListTab = () => {
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={claim.profile?.avatar_url || undefined} />
                           <AvatarFallback>
-                            {(claim.profile?.display_name || claim.profile?.username)?.[0]}
+                            {(claim.profile?.display_name)?.[0] || "?"}
                           </AvatarFallback>
                         </Avatar>
                         <span className="truncate max-w-[100px]">
-                          {claim.profile?.display_name || claim.profile?.username}
+                          {claim.profile?.display_name || "Unknown"}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <span className="font-mono text-xs truncate max-w-[100px]">
-                          {claim.wallet_address.slice(0, 6)}...{claim.wallet_address.slice(-4)}
+                          {claim.wallet_address?.slice(0, 6)}...{claim.wallet_address?.slice(-4)}
                         </span>
                         <a
                           href={`https://bscscan.com/address/${claim.wallet_address}`}

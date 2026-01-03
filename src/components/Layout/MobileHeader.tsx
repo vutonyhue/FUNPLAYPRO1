@@ -38,41 +38,13 @@ export const MobileHeader = ({ onMenuClick }: MobileHeaderProps) => {
   const [unclaimedRewards, setUnclaimedRewards] = useState(0);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
 
-  // Fetch unclaimed rewards count as notification indicator
+  // Fetch unclaimed rewards count - disabled until reward_transactions table is created
   useEffect(() => {
-    const fetchNotificationCount = async () => {
-      if (!user) {
-        setNotificationCount(0);
-        setUnclaimedRewards(0);
-        return;
-      }
-
-      try {
-        const { data, count } = await supabase
-          .from('reward_transactions')
-          .select('amount', { count: 'exact' })
-          .eq('user_id', user.id)
-          .eq('claimed', false)
-          .eq('status', 'success');
-
-        setNotificationCount(count || 0);
-        setUnclaimedRewards(data?.length || 0);
-      } catch (error) {
-        console.error('Error fetching notification count:', error);
-      }
-    };
-
-    fetchNotificationCount();
-
-    // Listen for new rewards
-    const handleReward = () => fetchNotificationCount();
-    window.addEventListener('camly-reward', handleReward);
-    window.addEventListener('tip-received', handleReward);
-    
-    return () => {
-      window.removeEventListener('camly-reward', handleReward);
-      window.removeEventListener('tip-received', handleReward);
-    };
+    // TODO: Enable when reward_transactions table is available
+    if (!user) {
+      setNotificationCount(0);
+      setUnclaimedRewards(0);
+    }
   }, [user]);
 
   const handleSearch = (e: React.FormEvent) => {

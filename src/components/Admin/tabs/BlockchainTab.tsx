@@ -41,25 +41,30 @@ const BlockchainTab = () => {
 
       if (error) throw error;
 
-      // Get user profiles
+      // Get user profiles - use user_id to match with claim_requests.user_id
       const userIds = [...new Set(claimData?.map((c) => c.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, username")
-        .in("id", userIds);
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", userIds);
 
-      const profileMap = new Map(profiles?.map((p) => [p.id, p.display_name || p.username]));
+        const profileMap = new Map(profiles?.map((p) => [p.user_id, p.display_name]) || []);
 
-      const enrichedClaims = claimData?.map((c) => ({
-        id: c.id,
-        wallet_address: c.wallet_address,
-        amount: c.amount,
-        tx_hash: c.tx_hash!,
-        created_at: c.created_at,
-        user_name: profileMap.get(c.user_id),
-      })) as BlockchainClaim[];
+        const enrichedClaims = claimData?.map((c) => ({
+          id: c.id,
+          wallet_address: c.wallet_address,
+          amount: Number(c.amount),
+          tx_hash: c.tx_hash!,
+          created_at: c.created_at,
+          user_name: profileMap.get(c.user_id) || undefined,
+        })) as BlockchainClaim[];
 
-      setClaims(enrichedClaims || []);
+        setClaims(enrichedClaims || []);
+      } else {
+        setClaims([]);
+      }
     } catch (error) {
       console.error("Error fetching blockchain data:", error);
     } finally {
@@ -153,7 +158,7 @@ const BlockchainTab = () => {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <span className="font-mono text-xs">
-                            {claim.wallet_address.slice(0, 6)}...{claim.wallet_address.slice(-4)}
+                            {claim.wallet_address?.slice(0, 6)}...{claim.wallet_address?.slice(-4)}
                           </span>
                           <a
                             href={`https://bscscan.com/address/${claim.wallet_address}`}
@@ -176,7 +181,7 @@ const BlockchainTab = () => {
                           className="flex items-center gap-1 text-cyan-500 hover:underline"
                         >
                           <span className="font-mono text-xs">
-                            {claim.tx_hash.slice(0, 10)}...
+                            {claim.tx_hash?.slice(0, 10)}...
                           </span>
                           <ExternalLink className="w-3 h-3" />
                         </a>

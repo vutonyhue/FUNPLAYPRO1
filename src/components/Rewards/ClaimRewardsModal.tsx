@@ -1,208 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Coins, Sparkles, Gift, CheckCircle, Loader2, ExternalLink, Wallet, Smartphone, AlertCircle, HelpCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Coins, Sparkles, Gift, Wallet, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useWalletConnectionWithRetry } from "@/hooks/useWalletConnectionWithRetry";
-import { WalletConnectionProgress } from "@/components/Web3/WalletConnectionProgress";
-import { MobileWalletGuide } from "@/components/Web3/MobileWalletGuide";
-import { toast } from "@/hooks/use-toast";
-import confetti from "canvas-confetti";
-import { isMobileBrowser, isInWalletBrowser, getWalletDeepLink, logWalletDebug, REWARD_WALLET_ADDRESS } from "@/lib/web3Config";
 
 interface ClaimRewardsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface RewardBreakdown {
-  type: string;
-  amount: number;
-  count: number;
-}
-
-const REWARD_TYPE_LABELS: Record<string, string> = {
-  view: "Xem video",
-  like: "Thích video",
-  comment: "Bình luận",
-  share: "Chia sẻ",
-  upload: "Upload video",
-  first_upload: "Upload đầu tiên",
-  signup: "Đăng ký",
-  wallet_connect: "Kết nối ví",
-};
-
+// Placeholder component until reward_transactions table is created
 export const ClaimRewardsModal = ({ open, onOpenChange }: ClaimRewardsModalProps) => {
   const { user } = useAuth();
-  const { 
-    isConnected, 
-    address, 
-    connectionStep,
-    connectionProgress,
-    connectionError,
-    connectWithRetry,
-    retry,
-    cancel,
-    isConnecting 
-  } = useWalletConnectionWithRetry();
-  
-  const [loading, setLoading] = useState(true);
-  const [claiming, setClaiming] = useState(false);
-  const [claimSuccess, setClaimSuccess] = useState(false);
-  const [txHash, setTxHash] = useState<string | null>(null);
-  const [totalUnclaimed, setTotalUnclaimed] = useState(0);
-  const [breakdown, setBreakdown] = useState<RewardBreakdown[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
-  const [inWalletApp, setInWalletApp] = useState(false);
-  const [showWalletGuide, setShowWalletGuide] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setIsMobile(isMobileBrowser());
-    setInWalletApp(isInWalletBrowser());
-    logWalletDebug('ClaimModal detection', { 
-      isMobile: isMobileBrowser(), 
-      inWalletApp: isInWalletBrowser() 
-    });
-  }, []);
-
-  useEffect(() => {
-    if (open && user) {
-      fetchUnclaimedRewards();
-    }
-  }, [open, user]);
-
-  const fetchUnclaimedRewards = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const { data: rewards, error } = await supabase
-        .from("reward_transactions")
-        .select("reward_type, amount")
-        .eq("user_id", user.id)
-        .eq("claimed", false)
-        .eq("status", "success");
-
-      if (error) throw error;
-
-      // Calculate breakdown
-      const breakdownMap = new Map<string, { amount: number; count: number }>();
-      let total = 0;
-
-      rewards?.forEach((r) => {
-        const existing = breakdownMap.get(r.reward_type) || { amount: 0, count: 0 };
-        breakdownMap.set(r.reward_type, {
-          amount: existing.amount + Number(r.amount),
-          count: existing.count + 1,
-        });
-        total += Number(r.amount);
-      });
-
-      setBreakdown(
-        Array.from(breakdownMap.entries()).map(([type, data]) => ({
-          type,
-          ...data,
-        }))
-      );
-      setTotalUnclaimed(total);
-    } catch (error) {
-      console.error("Error fetching unclaimed rewards:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClaim = async () => {
-    if (!user || !isConnected || !address) {
-      toast({
-        title: "Vui lòng kết nối ví",
-        description: "Bạn cần kết nối ví (MetaMask, Bitget, Trust) để nhận CAMLY",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setClaiming(true);
-    setClaimError(null);
-    
-    logWalletDebug('Starting claim', { 
-      userId: user.id, 
-      walletAddress: address,
-      totalUnclaimed 
-    });
-    
-    try {
-      const response = await supabase.functions.invoke("claim-camly", {
-        body: { walletAddress: address },
-      });
-
-      logWalletDebug('Claim response', response);
-
-      if (response.error) {
-        throw new Error(response.error.message || "Claim failed");
-      }
-
-      const data = response.data;
-
-      if (data.success) {
-        setClaimSuccess(true);
-        setTxHash(data.txHash);
-
-        // Trigger confetti celebration
-        confetti({
-          particleCount: 150,
-          spread: 100,
-          origin: { y: 0.6 },
-          colors: ["#FFD700", "#40E0D0", "#FF69B4", "#00CED1"],
-        });
-
-        toast({
-          title: "🎉 Rich Rich Rich!",
-          description: `${data.amount.toLocaleString()} CAMLY đã được gửi đến ví của bạn!`,
-        });
-      } else {
-        throw new Error(data.error || "Claim failed");
-      }
-    } catch (error: any) {
-      logWalletDebug('Claim error', error);
-      const errorMessage = error.message || "Không thể claim rewards. Vui lòng thử lại.";
-      setClaimError(errorMessage);
-      toast({
-        title: "Lỗi claim",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setClaiming(false);
-    }
-  };
-
-  // Handle wallet connection with retry
-  const handleConnect = useCallback(async () => {
-    logWalletDebug('ClaimModal: Connecting wallet', { isMobile, inWalletApp });
-    setClaimError(null);
-    await connectWithRetry();
-  }, [connectWithRetry, isMobile, inWalletApp]);
-
-  // Open specific wallet app via deep link
-  const openWalletApp = useCallback((wallet: 'metamask' | 'bitget' | 'trust') => {
-    logWalletDebug('Opening wallet app via deep link', { wallet });
-    
-    toast({
-      title: '🔗 Đang mở ví...',
-      description: `Chuyển đến ${wallet === 'metamask' ? 'MetaMask' : wallet === 'bitget' ? 'Bitget Wallet' : 'Trust Wallet'}`,
-    });
-    
-    const deepLink = getWalletDeepLink(wallet);
-    
-    // Small delay to show toast
-    setTimeout(() => {
-      window.location.href = deepLink;
-    }, 300);
-  }, []);
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat("vi-VN").format(num);
@@ -225,263 +35,58 @@ export const ClaimRewardsModal = ({ open, onOpenChange }: ClaimRewardsModalProps
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : claimSuccess ? (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="text-center space-y-4"
-            >
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 0.5 }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-yellow-400 to-cyan-400 flex items-center justify-center"
-              >
-                <CheckCircle className="h-12 w-12 text-white" />
-              </motion.div>
+          {/* Total Unclaimed */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="relative p-6 rounded-2xl bg-gradient-to-r from-yellow-500/20 via-cyan-500/20 to-yellow-500/20 border border-yellow-500/30"
+          >
+            <div className="relative text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Coins className="h-8 w-8 text-yellow-500" />
+                <span className="text-sm text-muted-foreground">Phần thưởng chờ claim</span>
+              </div>
               
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 bg-clip-text text-transparent">
-                Rich Rich Rich! 🎉
-              </h3>
-              
-              <p className="text-muted-foreground">
-                CAMLY thật đã được gửi đến ví của bạn!
-              </p>
-
-              {txHash && (
-                <a
-                  href={`https://bscscan.com/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  Xem giao dịch trên BscScan
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              )}
-
-              <Button
-                onClick={() => {
-                  setClaimSuccess(false);
-                  setTxHash(null);
-                  onOpenChange(false);
-                }}
-                className="w-full"
-              >
-                Đóng
-              </Button>
-            </motion.div>
-          ) : (
-            <>
-              {/* Total Unclaimed */}
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="relative p-6 rounded-2xl bg-gradient-to-r from-yellow-500/20 via-cyan-500/20 to-yellow-500/20 border border-yellow-500/30"
-              >
-                <motion.div
-                  className="absolute inset-0 rounded-2xl"
-                  animate={{
-                    boxShadow: [
-                      "0 0 20px rgba(255, 215, 0, 0.3)",
-                      "0 0 40px rgba(64, 224, 208, 0.3)",
-                      "0 0 20px rgba(255, 215, 0, 0.3)",
-                    ],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                
-                <div className="relative text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                    >
-                      <Coins className="h-8 w-8 text-yellow-500" />
-                    </motion.div>
-                    <span className="text-sm text-muted-foreground">Phần thưởng chờ claim</span>
-                  </div>
-                  
-                  <motion.p
-                    className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 bg-clip-text text-transparent"
-                    animate={{ scale: [1, 1.02, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {formatNumber(totalUnclaimed)}
-                  </motion.p>
-                  <p className="text-sm text-muted-foreground">CAMLY</p>
-                </div>
-              </motion.div>
-
-              {/* Breakdown */}
-              {breakdown.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Chi tiết phần thưởng</h4>
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                    {breakdown.map((item, index) => (
-                      <motion.div
-                        key={item.type}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                      >
-                        <span className="text-sm">
-                          {REWARD_TYPE_LABELS[item.type] || item.type} ({item.count}x)
-                        </span>
-                        <span className="font-medium text-yellow-500">
-                          +{formatNumber(item.amount)}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Connection Progress Indicator */}
-              <AnimatePresence>
-                {(isConnecting || connectionStep === 'error' || connectionStep === 'connected') && (
-                  <WalletConnectionProgress
-                    step={connectionStep}
-                    progress={connectionProgress}
-                    error={connectionError}
-                    onRetry={retry}
-                    onCancel={cancel}
-                  />
-                )}
-              </AnimatePresence>
-
-              {/* Wallet Connection */}
-              {!isConnected && connectionStep === 'idle' ? (
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleConnect}
-                    disabled={isConnecting}
-                    className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600"
-                  >
-                    {isConnecting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Wallet className="h-4 w-4 mr-2" />
-                    )}
-                    Kết nối ví để claim
-                  </Button>
-                  
-                  {/* Mobile deep link buttons */}
-                  {isMobile && !inWalletApp && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-center text-muted-foreground">
-                        <Smartphone className="h-3 w-3 inline mr-1" />
-                        Hoặc mở trực tiếp trong ứng dụng ví:
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openWalletApp('metamask')}
-                          className="flex-1 text-xs"
-                        >
-                          🦊 MetaMask
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openWalletApp('bitget')}
-                          className="flex-1 text-xs"
-                        >
-                          💎 Bitget
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openWalletApp('trust')}
-                          className="flex-1 text-xs"
-                        >
-                          🛡️ Trust
-                        </Button>
-                      </div>
-                      
-                      {/* Help button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowWalletGuide(true)}
-                        className="w-full text-xs text-muted-foreground"
-                      >
-                        <HelpCircle className="h-3 w-3 mr-1" />
-                        Hướng dẫn cài đặt ví
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* Show error if any */}
-                  {claimError && (
-                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-destructive font-medium">Lỗi</p>
-                          <p className="text-muted-foreground text-xs">{claimError}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : isConnected ? (
-                <div className="space-y-3">
-                  <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                    <span className="text-muted-foreground">Ví nhận:</span>
-                    <p className="font-mono text-xs truncate">{address}</p>
-                  </div>
-
-                  <Button
-                    onClick={handleClaim}
-                    disabled={claiming || totalUnclaimed <= 0}
-                    className="w-full bg-gradient-to-r from-yellow-500 to-cyan-500 hover:from-yellow-600 hover:to-cyan-600 text-white font-bold py-6"
-                  >
-                    {claiming ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Đang gửi CAMLY...
-                      </>
-                    ) : totalUnclaimed <= 0 ? (
-                      "Không có phần thưởng để claim"
-                    ) : (
-                      <>
-                        <motion.div
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ duration: 0.5, repeat: Infinity }}
-                        >
-                          <Coins className="h-5 w-5 mr-2" />
-                        </motion.div>
-                        Claim {formatNumber(totalUnclaimed)} CAMLY
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : null}
-
-              {/* Angel hint */}
               <motion.p
-                className="text-center text-xs text-muted-foreground italic"
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 bg-clip-text text-transparent"
               >
-                ✨ Angel says: "Rich Rich Rich rewards waiting for you!" ✨
+                {formatNumber(0)}
               </motion.p>
-            </>
-          )}
+              <p className="text-sm text-muted-foreground">CAMLY</p>
+            </div>
+          </motion.div>
+
+          {/* Development notice */}
+          <div className="p-4 rounded-lg bg-muted/50 border border-muted">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Tính năng đang phát triển</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Hệ thống rewards đang được xây dựng. Vui lòng quay lại sau!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            disabled
+            className="w-full bg-gradient-to-r from-yellow-500/50 to-cyan-500/50"
+          >
+            <Wallet className="h-5 w-5 mr-2" />
+            Kết nối ví để claim
+          </Button>
+
+          {/* Angel hint */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-xs text-center text-muted-foreground"
+          >
+            ✨ Hãy tiếp tục xem video và tương tác để nhận thêm CAMLY!
+          </motion.p>
         </div>
-        
-        {/* Mobile Wallet Guide */}
-        <MobileWalletGuide 
-          open={showWalletGuide} 
-          onOpenChange={setShowWalletGuide}
-          trigger={<></>}
-        />
       </DialogContent>
     </Dialog>
   );

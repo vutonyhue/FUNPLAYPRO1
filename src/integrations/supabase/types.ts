@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      claim_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          status: string
+          tx_hash: string | null
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          status?: string
+          tx_hash?: string | null
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          status?: string
+          tx_hash?: string | null
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       event_registrations: {
         Row: {
           event_id: string
@@ -84,25 +120,43 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          last_claim_at: string | null
+          pending_rewards: number | null
+          total_camly_rewards: number | null
           updated_at: string
           user_id: string
+          username: string | null
+          wallet_address: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          last_claim_at?: string | null
+          pending_rewards?: number | null
+          total_camly_rewards?: number | null
           updated_at?: string
           user_id: string
+          username?: string | null
+          wallet_address?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          last_claim_at?: string | null
+          pending_rewards?: number | null
+          total_camly_rewards?: number | null
           updated_at?: string
           user_id?: string
+          username?: string | null
+          wallet_address?: string | null
         }
         Relationships: []
       }

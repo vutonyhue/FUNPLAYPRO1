@@ -28,7 +28,7 @@ interface ClaimHistory {
   error_message: string | null;
   created_at: string;
   processed_at: string | null;
-  username?: string;
+  display_name?: string;
 }
 
 interface PoolStats {
@@ -53,9 +53,6 @@ const RewardPoolTab = () => {
   const [poolBalance, setPoolBalance] = useState<string>("--");
   const [bnbBalance, setBnbBalance] = useState<string>("--");
   const [adminWallet, setAdminWallet] = useState<string>("--");
-
-  const CAMLY_TOKEN_ADDRESS = "0x0910320181889fefde0bb1ca63962b0a8882e413";
-  const BSC_RPC_URL = "https://bsc-dataseed.binance.org/";
 
   useEffect(() => {
     fetchData();
@@ -83,21 +80,34 @@ const RewardPoolTab = () => {
 
       if (error) throw error;
 
-      // Fetch usernames for each claim
+      // Fetch display_name for each claim - use user_id to match
       const userIds = [...new Set(data?.map(c => c.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .in("id", userIds);
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", userIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.id, p.username]) || []);
+        const profileMap = new Map(profiles?.map(p => [p.user_id, p.display_name]) || []);
 
-      setClaims(
-        data?.map(c => ({
-          ...c,
-          username: profileMap.get(c.user_id) || "Unknown"
-        })) || []
-      );
+        setClaims(
+          data?.map(c => ({
+            id: c.id,
+            user_id: c.user_id,
+            amount: Number(c.amount),
+            wallet_address: c.wallet_address,
+            status: c.status,
+            tx_hash: c.tx_hash,
+            error_message: c.error_message,
+            created_at: c.created_at,
+            processed_at: c.processed_at,
+            display_name: profileMap.get(c.user_id) || undefined
+          })) || []
+        );
+      } else {
+        setClaims([]);
+      }
     } catch (error) {
       console.error("Error fetching claim history:", error);
     }
@@ -120,14 +130,15 @@ const RewardPoolTab = () => {
       };
 
       claimData?.forEach(c => {
-        if (c.status === "success") {
-          newStats.totalClaimed += Number(c.amount);
+        const amount = Number(c.amount);
+        if (c.status === "success" || c.status === "completed") {
+          newStats.totalClaimed += amount;
           newStats.claimCount++;
         } else if (c.status === "pending") {
-          newStats.totalPending += Number(c.amount);
+          newStats.totalPending += amount;
           newStats.pendingCount++;
         } else if (c.status === "failed") {
-          newStats.totalFailed += Number(c.amount);
+          newStats.totalFailed += amount;
         }
       });
 
@@ -164,6 +175,7 @@ const RewardPoolTab = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "success":
+      case "completed":
         return <Badge className="bg-green-500/20 text-green-500 border-green-500/30"><CheckCircle className="w-3 h-3 mr-1" /> Thành công</Badge>;
       case "pending":
         return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30"><Clock className="w-3 h-3 mr-1" /> Đang xử lý</Badge>;
@@ -310,12 +322,12 @@ const RewardPoolTab = () => {
                       <td className="py-3 px-2 text-muted-foreground">
                         {format(new Date(claim.created_at), "dd/MM HH:mm", { locale: vi })}
                       </td>
-                      <td className="py-3 px-2 font-medium">@{claim.username}</td>
+                      <td className="py-3 px-2 font-medium">{claim.display_name || "Unknown"}</td>
                       <td className="py-3 px-2 text-right font-bold text-yellow-500">
                         {formatNumber(claim.amount)}
                       </td>
                       <td className="py-3 px-2 font-mono text-xs">
-                        {claim.wallet_address.slice(0, 6)}...{claim.wallet_address.slice(-4)}
+                        {claim.wallet_address?.slice(0, 6)}...{claim.wallet_address?.slice(-4)}
                       </td>
                       <td className="py-3 px-2 text-center">
                         {getStatusBadge(claim.status)}

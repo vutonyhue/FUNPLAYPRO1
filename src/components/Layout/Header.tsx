@@ -33,26 +33,13 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const [suggestions, setSuggestions] = useState<Array<{ id: string; title: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Fetch search suggestions
+  // Fetch search suggestions - disabled until videos table is created
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (searchQuery.trim().length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      const { data } = await supabase
-        .from("videos")
-        .select("id, title")
-        .ilike("title", `%${searchQuery}%`)
-        .eq("is_public", true)
-        .limit(5);
-
-      setSuggestions(data || []);
-    };
-
-    const debounce = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(debounce);
+    // TODO: Enable when videos table is available in the database
+    // For now, just clear suggestions
+    if (searchQuery.trim().length < 2) {
+      setSuggestions([]);
+    }
   }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {

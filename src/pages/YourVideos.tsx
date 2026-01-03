@@ -63,14 +63,27 @@ const YourVideos = () => {
 
   const fetchVideos = async () => {
     try {
+      // First get the channel for this user
+      const { data: channelData } = await supabase
+        .from("channels")
+        .select("id")
+        .eq("user_id", user?.id)
+        .maybeSingle();
+
+      if (!channelData) {
+        setVideos([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("videos")
-        .select("id, title, description, thumbnail_url, view_count, created_at, is_public, like_count, comment_count")
-        .eq("user_id", user?.id)
+        .select("id, title, description, thumbnail_url, view_count, created_at, is_public, like_count")
+        .eq("channel_id", channelData.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setVideos(data || []);
+      setVideos((data || []) as any);
     } catch (error: any) {
       console.error("Error fetching videos:", error);
       toast({

@@ -43,7 +43,7 @@ interface MusicTrack {
   view_count: number | null;
   like_count: number | null;
   created_at: string;
-  user_id: string;
+  channel_id: string | null;
   channels: {
     id: string;
     name: string;

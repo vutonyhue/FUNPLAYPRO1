@@ -202,14 +202,14 @@ export default function Channel() {
       setChannel(data);
 
       // Fetch profile for background music and avatar
-      const { data: profileData } = await supabase
+      const { data: profileData } = await (supabase
         .from("profiles")
-        .select("background_music_url, music_enabled, bio, wallet_address, avatar_url, display_name")
-        .eq("id", data.user_id)
-        .single();
+        .select("bio, wallet_address, avatar_url, display_name")
+        .eq("user_id", data.user_id)
+        .single() as any);
 
       if (profileData) {
-        setProfile(profileData);
+        setProfile(profileData as any);
       }
     } catch (error: any) {
       toast({
@@ -248,7 +248,7 @@ export default function Channel() {
         .from("subscriptions")
         .select("id")
         .eq("channel_id", channel.id)
-        .eq("subscriber_id", user.id)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       setIsSubscribed(!!data);
@@ -271,7 +271,7 @@ export default function Channel() {
           .from("subscriptions")
           .delete()
           .eq("channel_id", channel.id)
-          .eq("subscriber_id", user.id);
+          .eq("user_id", user.id);
 
         // subscriber_count is updated automatically by database trigger
 
@@ -279,7 +279,7 @@ export default function Channel() {
       } else {
         await supabase.from("subscriptions").insert({
           channel_id: channel.id,
-          subscriber_id: user.id,
+          user_id: user.id,
         });
 
         // subscriber_count is updated automatically by database trigger

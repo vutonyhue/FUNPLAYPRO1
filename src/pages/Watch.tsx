@@ -213,7 +213,7 @@ export default function Watch() {
         .single();
 
       if (error) throw error;
-      setVideo(data);
+      setVideo(data as any);
 
       // Increment view count
       await supabase
@@ -420,12 +420,12 @@ export default function Watch() {
     if (!user || !video) return;
 
     try {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from("subscriptions")
         .select("id")
         .eq("channel_id", video.channels.id)
-        .eq("subscriber_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id)
+        .maybeSingle() as any);
 
       setIsSubscribed(!!data);
     } catch (error) {
@@ -437,13 +437,12 @@ export default function Watch() {
     if (!user || !id) return;
 
     try {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from("likes")
         .select("id")
         .eq("video_id", id)
         .eq("user_id", user.id)
-        .eq("is_dislike", false)
-        .maybeSingle();
+        .maybeSingle() as any);
 
       setHasLiked(!!data);
     } catch (error) {
@@ -465,7 +464,7 @@ export default function Watch() {
           .from("subscriptions")
           .delete()
           .eq("channel_id", video.channels.id)
-          .eq("subscriber_id", user.id);
+          .eq("user_id", user.id);
 
         // subscriber_count is updated automatically by database trigger
 
@@ -477,7 +476,7 @@ export default function Watch() {
       } else {
         await supabase.from("subscriptions").insert({
           channel_id: video.channels.id,
-          subscriber_id: user.id,
+          user_id: user.id,
         });
 
         // subscriber_count is updated automatically by database trigger
@@ -508,12 +507,11 @@ export default function Watch() {
     try {
       if (hasLiked) {
         // Unlike
-        await supabase
+        await (supabase
           .from("likes")
           .delete()
           .eq("video_id", id)
-          .eq("user_id", user.id)
-          .eq("is_dislike", false);
+          .eq("user_id", user.id) as any);
 
         await supabase
           .from("videos")
@@ -523,11 +521,10 @@ export default function Watch() {
         setHasLiked(false);
       } else {
         // Like
-        await supabase.from("likes").insert({
+        await (supabase.from("likes").insert({
           video_id: id,
           user_id: user.id,
-          is_dislike: false,
-        });
+        }) as any);
 
         await supabase
           .from("videos")

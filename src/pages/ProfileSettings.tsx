@@ -57,11 +57,11 @@ export default function ProfileSettings() {
       if (error) throw error;
 
       if (data) {
-        setDisplayName(data.display_name || "");
-        setWalletAddress(data.wallet_address || "");
-        setAvatarUrl(data.avatar_url || "");
-        setBio(data.bio || "");
-        setMusicUrl(data.music_url || "");
+        setDisplayName((data as any).display_name || "");
+        setWalletAddress((data as any).wallet_address || "");
+        setAvatarUrl((data as any).avatar_url || "");
+        setBio((data as any).bio || "");
+        setMusicUrl((data as any).music_url || "");
       }
 
       // Fetch channel info for banner
@@ -258,7 +258,7 @@ export default function ProfileSettings() {
         const { error: insertError } = await supabase
           .from("profiles")
           .insert({
-            id: user!.id,
+            user_id: user!.id,
             display_name: displayName,
             username: `user_${user!.id.substring(0, 8)}`,
           });

@@ -41,7 +41,7 @@ interface MusicTrack {
   view_count: number | null;
   like_count: number | null;
   created_at: string;
-  user_id: string;
+  channel_id: string | null;
   channels: {
     id: string;
     name: string;
@@ -142,13 +142,12 @@ export default function MusicDetail() {
   const checkLikeStatus = async () => {
     if (!user || !id) return;
     try {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from("likes")
         .select("id")
         .eq("video_id", id)
         .eq("user_id", user.id)
-        .eq("is_dislike", false)
-        .maybeSingle();
+        .maybeSingle() as any);
       setHasLiked(!!data);
     } catch (error) {
       console.error("Error checking like status:", error);
@@ -183,20 +182,18 @@ export default function MusicDetail() {
 
     try {
       if (hasLiked) {
-        await supabase
+        await (supabase
           .from("likes")
           .delete()
           .eq("video_id", id)
-          .eq("user_id", user.id)
-          .eq("is_dislike", false);
+          .eq("user_id", user.id) as any);
         setHasLiked(false);
         toast({ title: "Đã bỏ thích bài hát" });
       } else {
-        await supabase.from("likes").insert({
+        await (supabase.from("likes").insert({
           video_id: id,
           user_id: user.id,
-          is_dislike: false,
-        });
+        }) as any);
         setHasLiked(true);
         
         // Award CAMLY for liking

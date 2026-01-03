@@ -75,20 +75,20 @@ const checkMilestone = (oldTotal: number, newTotal: number) => {
 const getDailyLimits = async (userId: string) => {
   const today = new Date().toISOString().split('T')[0];
   
-  const { data, error } = await supabase
-    .from("daily_reward_limits")
+  const { data, error } = await (supabase
+    .from("daily_reward_limits" as any)
     .select("*")
     .eq("user_id", userId)
     .eq("date", today)
-    .single();
+    .single() as any);
 
   if (error && error.code === 'PGRST116') {
     // No record exists, create one
-    const { data: newData, error: insertError } = await supabase
-      .from("daily_reward_limits")
+    const { data: newData, error: insertError } = await (supabase
+      .from("daily_reward_limits" as any)
       .insert({ user_id: userId, date: today })
       .select()
-      .single();
+      .single() as any);
     
     if (insertError) throw insertError;
     return newData;
@@ -109,11 +109,11 @@ const updateDailyLimits = async (
   
   const newValue = (Number(limits[field]) || 0) + increment;
   
-  await supabase
-    .from("daily_reward_limits")
+  await (supabase
+    .from("daily_reward_limits" as any)
     .update({ [field]: newValue })
     .eq("user_id", userId)
-    .eq("date", today);
+    .eq("date", today) as any);
 };
 
 // Check if view is valid
@@ -135,27 +135,24 @@ export const logView = async (
   const watchPercentage = Math.round((watchTimeSeconds / videoDurationSeconds) * 100);
 
   // Insert view log
-  await supabase.from("view_logs").insert({
+  await (supabase.from("view_logs" as any).insert({
     user_id: userId,
     video_id: videoId,
-    watch_time_seconds: watchTimeSeconds,
-    video_duration_seconds: videoDurationSeconds,
-    watch_percentage: watchPercentage,
-    is_valid: isValid,
-    session_id: sessionId,
-  });
+    watch_duration: watchTimeSeconds,
+    rewarded: false,
+  }) as any);
 
   if (!isValid) return { isValid: false, shouldReward: false };
 
   // Count valid views for this user on this video today
   const today = new Date().toISOString().split('T')[0];
-  const { count } = await supabase
-    .from("view_logs")
+  const { count } = await (supabase
+    .from("view_logs" as any)
     .select("*", { count: 'exact', head: true })
     .eq("user_id", userId)
     .eq("video_id", videoId)
-    .eq("is_valid", true)
-    .gte("created_at", today);
+    .eq("rewarded", true)
+    .gte("created_at", today) as any);
 
   // Check if this is the 10th valid view (reward every 10 views)
   const shouldReward = (count || 0) % 10 === 0 && (count || 0) > 0;
@@ -217,13 +214,13 @@ export const isValidComment = (content: string): boolean => {
 export const canRewardComment = async (userId: string, videoId: string): Promise<boolean> => {
   const today = new Date().toISOString().split('T')[0];
   
-  const { count } = await supabase
-    .from("comment_logs")
+  const { count } = await (supabase
+    .from("comment_logs" as any)
     .select("*", { count: 'exact', head: true })
     .eq("user_id", userId)
     .eq("video_id", videoId)
-    .eq("is_rewarded", true)
-    .gte("created_at", today);
+    .eq("rewarded", true)
+    .gte("created_at", today) as any);
 
   return (count || 0) < 5;
 };
@@ -238,36 +235,33 @@ export const logAndRewardComment = async (
   const isValid = isValidComment(content);
   
   if (!isValid) {
-    await supabase.from("comment_logs").insert({
+    await (supabase.from("comment_logs" as any).insert({
       user_id: userId,
       video_id: videoId,
       comment_id: commentId,
-      is_valid: false,
-      is_rewarded: false,
-    });
+      rewarded: false,
+    }) as any);
     return { rewarded: false, amount: 0, reason: "Comment must be at least 5 characters" };
   }
 
   const canReward = await canRewardComment(userId, videoId);
   
   if (!canReward) {
-    await supabase.from("comment_logs").insert({
+    await (supabase.from("comment_logs" as any).insert({
       user_id: userId,
       video_id: videoId,
       comment_id: commentId,
-      is_valid: true,
-      is_rewarded: false,
-    });
+      rewarded: false,
+    }) as any);
     return { rewarded: false, amount: 0, reason: "Max 5 rewarded comments per video per day" };
   }
 
-  await supabase.from("comment_logs").insert({
+  await (supabase.from("comment_logs" as any).insert({
     user_id: userId,
     video_id: videoId,
     comment_id: commentId,
-    is_valid: true,
-    is_rewarded: true,
-  });
+    rewarded: true,
+  }) as any);
 
   const result = await awardCAMLY(userId, REWARD_AMOUNTS.COMMENT, "COMMENT", videoId);
   return { rewarded: result.success, amount: result.amount, reason: result.reason };

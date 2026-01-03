@@ -47,14 +47,14 @@ const ManagePosts = () => {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("posts")
+      const { data, error } = await (supabase
+        .from("posts" as any)
         .select("id, content, image_url, like_count, comment_count, created_at, is_public")
         .eq("user_id", user?.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }) as any);
 
       if (error) throw error;
-      setPosts(data || []);
+      setPosts((data || []) as any);
     } catch (error: any) {
       console.error("Error fetching posts:", error);
       toast({
@@ -69,10 +69,10 @@ const ManagePosts = () => {
 
   const handleDelete = async (postId: string) => {
     try {
-      const { error } = await supabase
-        .from("posts")
+      const { error } = await (supabase
+        .from("posts" as any)
         .delete()
-        .eq("id", postId);
+        .eq("id", postId) as any);
 
       if (error) throw error;
 
@@ -95,10 +95,10 @@ const ManagePosts = () => {
 
   const handleToggleVisibility = async (postId: string, currentStatus: boolean | null) => {
     try {
-      const { error } = await supabase
-        .from("posts")
+      const { error } = await (supabase
+        .from("posts" as any)
         .update({ is_public: !currentStatus })
-        .eq("id", postId);
+        .eq("id", postId) as any);
 
       if (error) throw error;
 

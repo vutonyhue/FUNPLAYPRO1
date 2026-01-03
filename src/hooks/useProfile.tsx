@@ -4,13 +4,13 @@ import { useAuth } from "./useAuth";
 
 interface Profile {
   id: string;
-  username: string;
+  user_id: string;
+  username: string | null;
   display_name: string | null;
   avatar_url: string | null;
-  bio: string | null;
   wallet_address: string | null;
   total_camly_rewards: number;
-  music_url: string | null;
+  pending_rewards: number;
 }
 
 export const useProfile = (userId?: string) => {
@@ -30,11 +30,22 @@ export const useProfile = (userId?: string) => {
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", targetUserId)
+          .eq("user_id", targetUserId)
           .maybeSingle();
 
         if (error) throw error;
-        setProfile(data);
+        if (data) {
+          setProfile({
+            id: data.id,
+            user_id: data.user_id,
+            username: data.username,
+            display_name: data.display_name,
+            avatar_url: data.avatar_url,
+            wallet_address: data.wallet_address,
+            total_camly_rewards: Number(data.total_camly_rewards) || 0,
+            pending_rewards: Number(data.pending_rewards) || 0,
+          });
+        }
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
@@ -53,11 +64,21 @@ export const useProfile = (userId?: string) => {
           event: '*',
           schema: 'public',
           table: 'profiles',
-          filter: `id=eq.${targetUserId}`
+          filter: `user_id=eq.${targetUserId}`
         },
         (payload) => {
           if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-            setProfile(payload.new as Profile);
+            const data = payload.new as any;
+            setProfile({
+              id: data.id,
+              user_id: data.user_id,
+              username: data.username,
+              display_name: data.display_name,
+              avatar_url: data.avatar_url,
+              wallet_address: data.wallet_address,
+              total_camly_rewards: Number(data.total_camly_rewards) || 0,
+              pending_rewards: Number(data.pending_rewards) || 0,
+            });
           }
         }
       )

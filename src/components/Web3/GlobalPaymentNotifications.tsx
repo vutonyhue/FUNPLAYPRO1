@@ -28,20 +28,20 @@ export const GlobalPaymentNotifications = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'wallet_transactions',
-          filter: `to_user_id=eq.${user.id}`,
+          filter: `to_address=eq.${user.id}`,
         },
         async (payload) => {
           console.log('Global payment notification received:', payload);
           
-          const newTx = payload.new;
+          const newTx = payload.new as any;
           const amount = parseFloat(newTx.amount as string);
-          const token = newTx.token_type as string;
+          const token = newTx.token_symbol as string || 'CAMLY';
 
           // Update received count
-          const { count } = await supabase
-            .from('wallet_transactions')
+          const { count } = await (supabase
+            .from('wallet_transactions') as any)
             .select('*', { count: 'exact', head: true })
-            .eq('to_user_id', user.id)
+            .eq('user_id', user.id)
             .eq('status', 'success');
 
           setReceivedAmount(amount.toFixed(3));

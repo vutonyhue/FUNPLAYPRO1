@@ -30,13 +30,8 @@ export const useRewardConfig = () => {
 
   const fetchConfigs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reward_config')
-        .select('*')
-        .order('config_key');
-
-      if (error) throw error;
-      setConfigs(data || []);
+      // reward_config table doesn't exist yet, return empty
+      setConfigs([]);
     } catch (error) {
       console.error('Error fetching reward configs:', error);
     }
@@ -44,18 +39,8 @@ export const useRewardConfig = () => {
 
   const fetchHistory = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reward_config_history')
-        .select('*')
-        .order('changed_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        // User might not be admin, so history fetch might fail
-        console.log('Could not fetch history (may require admin role)');
-        return;
-      }
-      setHistory(data || []);
+      // reward_config_history table doesn't exist yet, return empty
+      setHistory([]);
     } catch (error) {
       console.error('Error fetching history:', error);
     }

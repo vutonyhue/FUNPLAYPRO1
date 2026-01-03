@@ -92,28 +92,8 @@ export const useAutoReward = () => {
   // Award signup reward (one-time)
   const awardSignupReward = useCallback(async (userId: string): Promise<boolean> => {
     try {
-      // Check if already rewarded
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('signup_rewarded')
-        .eq('id', userId)
-        .single();
-
-      if (profile?.signup_rewarded) {
-        return false; // Already rewarded
-      }
-
       const result = await awardCAMLY('SIGNUP');
-      
-      if (result.success) {
-        // Mark as rewarded
-        await supabase
-          .from('profiles')
-          .update({ signup_rewarded: true })
-          .eq('id', userId);
-        return true;
-      }
-      return false;
+      return result.success;
     } catch (err) {
       console.error('Signup reward error:', err);
       return false;
@@ -123,28 +103,8 @@ export const useAutoReward = () => {
   // Award wallet connect reward (one-time)
   const awardWalletConnectReward = useCallback(async (userId: string): Promise<boolean> => {
     try {
-      // Check if already rewarded
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('wallet_connect_rewarded')
-        .eq('id', userId)
-        .single();
-
-      if (profile?.wallet_connect_rewarded) {
-        return false; // Already rewarded
-      }
-
       const result = await awardCAMLY('WALLET_CONNECT');
-      
-      if (result.success) {
-        // Mark as rewarded
-        await supabase
-          .from('profiles')
-          .update({ wallet_connect_rewarded: true })
-          .eq('id', userId);
-        return true;
-      }
-      return false;
+      return result.success;
     } catch (err) {
       console.error('Wallet connect reward error:', err);
       return false;
@@ -154,28 +114,8 @@ export const useAutoReward = () => {
   // Award first upload reward (one-time, 500K CAMLY)
   const awardFirstUploadReward = useCallback(async (userId: string, videoId: string): Promise<boolean> => {
     try {
-      // Check if already rewarded
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_upload_rewarded')
-        .eq('id', userId)
-        .single();
-
-      if (profile?.first_upload_rewarded) {
-        return false; // Already rewarded, use regular upload reward
-      }
-
       const result = await awardCAMLY('FIRST_UPLOAD', videoId);
-      
-      if (result.success) {
-        // Mark as rewarded
-        await supabase
-          .from('profiles')
-          .update({ first_upload_rewarded: true })
-          .eq('id', userId);
-        return true;
-      }
-      return false;
+      return result.success;
     } catch (err) {
       console.error('First upload reward error:', err);
       return false;

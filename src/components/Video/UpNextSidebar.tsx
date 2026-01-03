@@ -57,8 +57,8 @@ export function UpNextSidebar({ onVideoSelect }: UpNextSidebarProps) {
   }, [session?.context_type, session?.context_id]);
 
   const fetchPlaylistInfo = async (playlistId: string) => {
-    const { data } = await supabase
-      .from("playlists")
+    const { data } = await (supabase
+      .from("playlists") as any)
       .select("id, name")
       .eq("id", playlistId)
       .single();

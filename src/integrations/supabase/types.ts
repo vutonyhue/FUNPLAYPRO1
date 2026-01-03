@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      channels: {
+        Row: {
+          avatar_url: string | null
+          banner_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          subscriber_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          banner_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          subscriber_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          banner_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          subscriber_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       claim_requests: {
         Row: {
           amount: number
@@ -49,6 +85,54 @@ export type Database = {
           wallet_address?: string
         }
         Relationships: []
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          like_count: number | null
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          like_count?: number | null
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          like_count?: number | null
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_registrations: {
         Row: {
@@ -118,6 +202,186 @@ export type Database = {
         }
         Relationships: []
       }
+      likes: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: string
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meditation_playlist_videos: {
+        Row: {
+          added_at: string
+          id: string
+          playlist_id: string
+          position: number | null
+          video_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          playlist_id: string
+          position?: number | null
+          video_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          playlist_id?: string
+          position?: number | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meditation_playlist_videos_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "meditation_playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meditation_playlist_videos_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meditation_playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playlist_videos: {
+        Row: {
+          added_at: string
+          id: string
+          playlist_id: string
+          position: number | null
+          video_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          playlist_id: string
+          position?: number | null
+          video_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          playlist_id?: string
+          position?: number | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_videos_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_videos_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -160,6 +424,73 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reason: string | null
+          type: string
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reason?: string | null
+          type: string
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: string | null
+          type?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_transactions_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -177,6 +508,104 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      videos: {
+        Row: {
+          category: string | null
+          channel_id: string | null
+          created_at: string
+          description: string | null
+          duration: number | null
+          id: string
+          is_public: boolean | null
+          like_count: number | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string
+          view_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          channel_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_public?: boolean | null
+          like_count?: number | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_url: string
+          view_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          channel_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_public?: boolean | null
+          like_count?: number | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          from_address: string | null
+          id: string
+          metadata: Json | null
+          status: string | null
+          to_address: string | null
+          token_symbol: string | null
+          tx_hash: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string | null
+          to_address?: string | null
+          token_symbol?: string | null
+          tx_hash?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string | null
+          to_address?: string | null
+          token_symbol?: string | null
+          tx_hash?: string | null
+          type?: string
           user_id?: string
         }
         Relationships: []

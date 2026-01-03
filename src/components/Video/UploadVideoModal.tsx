@@ -54,8 +54,8 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
   const fetchPlaylists = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
-      .from("meditation_playlists")
+    const { data, error } = await (supabase
+      .from("meditation_playlists") as any)
       .select("id, name")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -68,8 +68,8 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
   const createNewPlaylist = async (): Promise<string | null> => {
     if (!user || !newPlaylistName.trim()) return null;
 
-    const { data, error } = await supabase
-      .from("meditation_playlists")
+    const { data, error } = await (supabase
+      .from("meditation_playlists") as any)
       .insert({
         user_id: user.id,
         name: newPlaylistName.trim(),
@@ -97,8 +97,8 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
 
   const addVideoToPlaylist = async (videoId: string, playlistId: string) => {
     // Get current max position
-    const { data: existingVideos } = await supabase
-      .from("meditation_playlist_videos")
+    const { data: existingVideos } = await (supabase
+      .from("meditation_playlist_videos") as any)
       .select("position")
       .eq("playlist_id", playlistId)
       .order("position", { ascending: false })
@@ -108,8 +108,8 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
       ? existingVideos[0].position + 1 
       : 0;
 
-    const { error } = await supabase
-      .from("meditation_playlist_videos")
+    const { error } = await (supabase
+      .from("meditation_playlist_videos") as any)
       .insert({
         playlist_id: playlistId,
         video_id: videoId,
@@ -175,8 +175,8 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
       setUploadStage("Đang kiểm tra kênh...");
       setUploadProgress(5);
 
-      const { data: channels } = await supabase
-        .from("channels")
+      const { data: channels } = await (supabase
+        .from("channels") as any)
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -187,11 +187,11 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
         const { data: profile } = await supabase
           .from("profiles")
           .select("display_name")
-          .eq("id", user.id)
-          .single();
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-        const { data: newChannel, error: channelError } = await supabase
-          .from("channels")
+        const { data: newChannel, error: channelError } = await (supabase
+          .from("channels") as any)
           .insert({
             user_id: user.id,
             name: profile?.display_name || user.email?.split("@")[0] || "Kênh của tôi",
@@ -405,8 +405,7 @@ export function UploadVideoModal({ open, onOpenChange }: UploadVideoModalProps) 
       setUploadStage("Đang lưu thông tin...");
       setUploadProgress(93);
 
-      const { data: videoData, error: videoError } = await supabase.from("videos").insert({
-        user_id: user.id,
+      const { data: videoData, error: videoError } = await (supabase.from("videos") as any).insert({
         channel_id: channelId,
         title,
         description,

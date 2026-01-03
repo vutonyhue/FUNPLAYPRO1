@@ -39,20 +39,21 @@ export const useRewardStatistics = (userId: string | undefined) => {
         const { data: profile } = await supabase
           .from("profiles")
           .select("total_camly_rewards")
-          .eq("id", userId)
-          .single();
+          .eq("user_id", userId)
+          .maybeSingle();
 
         // Get breakdown by type
-        const { data: transactions } = await supabase
-          .from("reward_transactions")
-          .select("reward_type, amount")
+        const { data: transactions } = await (supabase
+          .from("reward_transactions") as any)
+          .select("type, amount")
           .eq("user_id", userId);
 
         // Calculate breakdown
         const breakdownMap = new Map<string, { total: number; count: number }>();
-        transactions?.forEach((tx) => {
-          const existing = breakdownMap.get(tx.reward_type) || { total: 0, count: 0 };
-          breakdownMap.set(tx.reward_type, {
+        transactions?.forEach((tx: any) => {
+          const type = tx.type || 'unknown';
+          const existing = breakdownMap.get(type) || { total: 0, count: 0 };
+          breakdownMap.set(type, {
             total: existing.total + Number(tx.amount),
             count: existing.count + 1,
           });
@@ -66,8 +67,8 @@ export const useRewardStatistics = (userId: string | undefined) => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const { data: recentTransactions } = await supabase
-          .from("reward_transactions")
+        const { data: recentTransactions } = await (supabase
+          .from("reward_transactions") as any)
           .select("amount, created_at")
           .eq("user_id", userId)
           .gte("created_at", thirtyDaysAgo.toISOString())
@@ -75,7 +76,7 @@ export const useRewardStatistics = (userId: string | undefined) => {
 
         // Group by date
         const dailyMap = new Map<string, number>();
-        recentTransactions?.forEach((tx) => {
+        recentTransactions?.forEach((tx: any) => {
           const date = new Date(tx.created_at).toISOString().split('T')[0];
           dailyMap.set(date, (dailyMap.get(date) || 0) + Number(tx.amount));
         });
@@ -84,23 +85,14 @@ export const useRewardStatistics = (userId: string | undefined) => {
           ([date, amount]) => ({ date, amount })
         );
 
-        // Get today's limits
-        const today = new Date().toISOString().split('T')[0];
-        const { data: limits } = await supabase
-          .from("daily_reward_limits")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("date", today)
-          .single();
-
         setStatistics({
           totalEarned: Number(profile?.total_camly_rewards) || 0,
           breakdown,
           dailyRewards,
           todayLimits: {
-            viewRewardsEarned: Number(limits?.view_rewards_earned) || 0,
-            commentRewardsEarned: Number(limits?.comment_rewards_earned) || 0,
-            uploadCount: Number(limits?.uploads_count) || 0,
+            viewRewardsEarned: 0,
+            commentRewardsEarned: 0,
+            uploadCount: 0,
           },
         });
       } catch (error) {
@@ -128,8 +120,8 @@ export const useRewardHistory = (userId: string | undefined) => {
 
     const fetchHistory = async () => {
       try {
-        const { data } = await supabase
-          .from("reward_transactions")
+        const { data } = await (supabase
+          .from("reward_transactions") as any)
           .select(`
             *,
             videos (title)

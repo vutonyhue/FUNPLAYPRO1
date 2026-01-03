@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { supabase } from "@/integrations/supabase/client";
 
 interface RichNotificationProps {
   show: boolean;
@@ -13,7 +12,6 @@ interface RichNotificationProps {
 }
 
 export const RichNotification = ({ show, amount, token, count, onClose, userId }: RichNotificationProps) => {
-  const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
   // Kill ALL voice synthesis immediately on mount and continuously
@@ -27,25 +25,6 @@ export const RichNotification = ({ show, amount, token, count, onClose, userId }
     const interval = setInterval(killVoice, 100); // Kill voice every 100ms
     return () => clearInterval(interval);
   }, []);
-
-  // Fetch user's custom music URL
-  useEffect(() => {
-    const fetchMusicUrl = async () => {
-      if (userId) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("music_url")
-          .eq("id", userId)
-          .single();
-        
-        if (data?.music_url) {
-          setMusicUrl(data.music_url);
-        }
-      }
-    };
-    
-    fetchMusicUrl();
-  }, [userId]);
 
   // Happy jumping effect - move notification around the screen
   useEffect(() => {
@@ -72,18 +51,12 @@ export const RichNotification = ({ show, amount, token, count, onClose, userId }
         window.speechSynthesis.pause();
       }
 
-      // Play notification sound IMMEDIATELY - custom music if available, otherwise default bell sound
+      // Play notification sound IMMEDIATELY - default bell sound
       let notificationAudio: HTMLAudioElement | null = null;
       
-      if (musicUrl) {
-        notificationAudio = new Audio(musicUrl);
-        notificationAudio.volume = 0.5;
-        notificationAudio.loop = true;
-      } else {
-        notificationAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2058/2058-preview.mp3');
-        notificationAudio.volume = 0.6;
-        notificationAudio.loop = true;
-      }
+      notificationAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2058/2058-preview.mp3');
+      notificationAudio.volume = 0.6;
+      notificationAudio.loop = true;
       
       // Play immediately without delay
       notificationAudio.play().catch(err => console.error("Error playing notification sound:", err));
@@ -161,7 +134,7 @@ export const RichNotification = ({ show, amount, token, count, onClose, userId }
         }
       };
     }
-  }, [show, onClose, musicUrl]);
+  }, [show, onClose]);
 
   return (
     <AnimatePresence>

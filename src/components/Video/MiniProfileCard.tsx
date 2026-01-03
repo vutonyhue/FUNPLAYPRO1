@@ -35,11 +35,11 @@ export const MiniProfileCard = ({
     if (!user) return;
 
     try {
-      const { data } = await supabase
-        .from("subscriptions")
+      const { data } = await (supabase
+        .from("subscriptions") as any)
         .select("id")
         .eq("channel_id", channelId)
-        .eq("subscriber_id", user.id)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       setIsSubscribed(!!data);
@@ -59,13 +59,11 @@ export const MiniProfileCard = ({
     setLoading(true);
     try {
       if (isSubscribed) {
-        await supabase
-          .from("subscriptions")
+        await (supabase
+          .from("subscriptions") as any)
           .delete()
           .eq("channel_id", channelId)
-          .eq("subscriber_id", user.id);
-
-        // subscriber_count is updated automatically by database trigger
+          .eq("user_id", user.id);
 
         setIsSubscribed(false);
         toast({
@@ -73,12 +71,10 @@ export const MiniProfileCard = ({
           description: "Bạn đã hủy đăng ký kênh này",
         });
       } else {
-        await supabase.from("subscriptions").insert({
+        await (supabase.from("subscriptions") as any).insert({
           channel_id: channelId,
-          subscriber_id: user.id,
+          user_id: user.id,
         });
-
-        // subscriber_count is updated automatically by database trigger
 
         setIsSubscribed(true);
         toast({

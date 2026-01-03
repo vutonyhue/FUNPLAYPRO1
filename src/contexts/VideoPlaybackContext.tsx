@@ -128,8 +128,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     
     // 1. Videos from same category
     if (category) {
-      const { data: categoryVideos } = await supabase
-        .from("videos")
+      const { data: categoryVideos } = await (supabase
+        .from("videos") as any)
         .select(`
           id, title, thumbnail_url, video_url, duration, view_count, category,
           channels!inner (id, name)
@@ -141,15 +141,15 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
         .limit(10);
       
       if (categoryVideos) {
-        results.push(...categoryVideos.map(v => ({
+        results.push(...categoryVideos.map((v: any) => ({
           id: v.id,
           title: v.title,
           thumbnail_url: v.thumbnail_url,
           video_url: v.video_url,
           duration: v.duration,
           view_count: v.view_count,
-          channel_name: (v.channels as any)?.name,
-          channel_id: (v.channels as any)?.id,
+          channel_name: v.channels?.name,
+          channel_id: v.channels?.id,
           category: v.category,
         })));
       }
@@ -157,8 +157,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
 
     // 2. Videos from same channel
     if (channelId && results.length < 15) {
-      const { data: channelVideos } = await supabase
-        .from("videos")
+      const { data: channelVideos } = await (supabase
+        .from("videos") as any)
         .select(`
           id, title, thumbnail_url, video_url, duration, view_count, category,
           channels!inner (id, name)
@@ -170,15 +170,15 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
         .limit(10);
       
       if (channelVideos) {
-        results.push(...channelVideos.map(v => ({
+        results.push(...channelVideos.map((v: any) => ({
           id: v.id,
           title: v.title,
           thumbnail_url: v.thumbnail_url,
           video_url: v.video_url,
           duration: v.duration,
           view_count: v.view_count,
-          channel_name: (v.channels as any)?.name,
-          channel_id: (v.channels as any)?.id,
+          channel_name: v.channels?.name,
+          channel_id: v.channels?.id,
           category: v.category,
         })));
       }
@@ -187,8 +187,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     // 3. Fallback: trending/recent videos
     if (results.length < 20) {
       const allExcludeIds = [currentVideoId, ...excludeIds, ...results.map(r => r.id)];
-      const { data: trendingVideos } = await supabase
-        .from("videos")
+      const { data: trendingVideos } = await (supabase
+        .from("videos") as any)
         .select(`
           id, title, thumbnail_url, video_url, duration, view_count, category,
           channels!inner (id, name)
@@ -199,15 +199,15 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
         .limit(20 - results.length);
       
       if (trendingVideos) {
-        results.push(...trendingVideos.map(v => ({
+        results.push(...trendingVideos.map((v: any) => ({
           id: v.id,
           title: v.title,
           thumbnail_url: v.thumbnail_url,
           video_url: v.video_url,
           duration: v.duration,
           view_count: v.view_count,
-          channel_name: (v.channels as any)?.name,
-          channel_id: (v.channels as any)?.id,
+          channel_name: v.channels?.name,
+          channel_id: v.channels?.id,
           category: v.category,
         })));
       }
@@ -218,8 +218,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
 
   // Fetch playlist videos
   const fetchPlaylistVideos = async (playlistId: string): Promise<VideoItem[]> => {
-    const { data } = await supabase
-      .from("playlist_videos")
+    const { data } = await (supabase
+      .from("playlist_videos") as any)
       .select(`
         position,
         videos (
@@ -233,9 +233,9 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     if (!data) return [];
 
     return data
-      .filter(item => item.videos)
-      .map(item => {
-        const v = item.videos as any;
+      .filter((item: any) => item.videos)
+      .map((item: any) => {
+        const v = item.videos;
         return {
           id: v.id,
           title: v.title,
@@ -252,8 +252,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
 
   // Fetch channel videos
   const fetchChannelVideos = async (channelId: string, currentVideoId: string): Promise<VideoItem[]> => {
-    const { data } = await supabase
-      .from("videos")
+    const { data } = await (supabase
+      .from("videos") as any)
       .select(`
         id, title, thumbnail_url, video_url, duration, view_count, category,
         channels (id, name)
@@ -265,15 +265,15 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
 
     if (!data) return [];
 
-    return data.map(v => ({
+    return data.map((v: any) => ({
       id: v.id,
       title: v.title,
       thumbnail_url: v.thumbnail_url,
       video_url: v.video_url,
       duration: v.duration,
       view_count: v.view_count,
-      channel_name: (v.channels as any)?.name,
-      channel_id: (v.channels as any)?.id,
+      channel_name: v.channels?.name,
+      channel_id: v.channels?.id,
       category: v.category,
     }));
   };
@@ -291,8 +291,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     let startVideo: VideoItem | null = queue.find(v => v.id === videoId) || null;
     
     if (!startVideo) {
-      const { data } = await supabase
-        .from("videos")
+      const { data } = await (supabase
+        .from("videos") as any)
         .select(`
           id, title, thumbnail_url, video_url, duration, view_count, category,
           channels (id, name)
@@ -308,8 +308,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
           video_url: data.video_url,
           duration: data.duration,
           view_count: data.view_count,
-          channel_name: (data.channels as any)?.name,
-          channel_id: (data.channels as any)?.id,
+          channel_name: data.channels?.name,
+          channel_id: data.channels?.id,
           category: data.category,
         };
       }
@@ -504,13 +504,13 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     return prevVid || null;
   }, [session]);
 
-  // Skip to specific video in queue
+  // Skip to specific video
   const skipToVideo = useCallback((videoId: string) => {
     if (!session) return;
-
+    
     const idx = session.queue.findIndex(v => v.id === videoId);
     if (idx === -1) return;
-
+    
     const video = session.queue[idx];
     setSession(prev => {
       if (!prev) return null;
@@ -524,37 +524,43 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     setCurrentVideo(video);
   }, [session]);
 
-  // Queue management
+  // Add video to queue
   const addToQueue = useCallback((video: VideoItem) => {
     setSession(prev => {
       if (!prev) return null;
-      return {
-        ...prev,
-        queue: [...prev.queue, video],
-      };
+      // Add after current position
+      const newQueue = [...prev.queue];
+      newQueue.splice(prev.current_index + 1, 0, video);
+      return { ...prev, queue: newQueue };
     });
   }, []);
 
+  // Remove video from queue
   const removeFromQueue = useCallback((videoId: string) => {
     setSession(prev => {
       if (!prev) return null;
+      const idx = prev.queue.findIndex(v => v.id === videoId);
+      if (idx === -1) return prev;
+      
       const newQueue = prev.queue.filter(v => v.id !== videoId);
       let newIndex = prev.current_index;
       
-      // Adjust index if removed video was before current
-      const removedIdx = prev.queue.findIndex(v => v.id === videoId);
-      if (removedIdx < prev.current_index) {
-        newIndex = Math.max(0, newIndex - 1);
+      // Adjust current index if needed
+      if (idx < prev.current_index) {
+        newIndex--;
+      } else if (idx === prev.current_index && newQueue.length > 0) {
+        newIndex = Math.min(newIndex, newQueue.length - 1);
       }
       
       return {
         ...prev,
         queue: newQueue,
-        current_index: newIndex,
+        current_index: Math.max(0, newIndex),
       };
     });
   }, []);
 
+  // Reorder queue
   const reorderQueue = useCallback((fromIndex: number, toIndex: number) => {
     setSession(prev => {
       if (!prev) return null;
@@ -563,19 +569,19 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
       newQueue.splice(toIndex, 0, removed);
       
       // Adjust current index
-      let newIndex = prev.current_index;
+      let newCurrentIndex = prev.current_index;
       if (fromIndex === prev.current_index) {
-        newIndex = toIndex;
+        newCurrentIndex = toIndex;
       } else if (fromIndex < prev.current_index && toIndex >= prev.current_index) {
-        newIndex = prev.current_index - 1;
+        newCurrentIndex--;
       } else if (fromIndex > prev.current_index && toIndex <= prev.current_index) {
-        newIndex = prev.current_index + 1;
+        newCurrentIndex++;
       }
       
       return {
         ...prev,
         queue: newQueue,
-        current_index: newIndex,
+        current_index: newCurrentIndex,
       };
     });
   }, []);
@@ -587,9 +593,6 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
 
   const setShuffle = useCallback((enabled: boolean) => {
     setSession(prev => prev ? { ...prev, shuffle: enabled } : null);
-    if (enabled) {
-      exhaustedPoolRef.current.clear();
-    }
   }, []);
 
   const setRepeat = useCallback((mode: "off" | "all" | "one") => {
@@ -601,14 +604,32 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     setSession(prev => prev ? { ...prev, position_ms: positionMs } : null);
   }, []);
 
+  // Get up next videos
+  const getUpNext = useCallback((count: number = 10): VideoItem[] => {
+    if (!session) return [];
+    
+    const startIdx = session.current_index + 1;
+    const upNext: VideoItem[] = [];
+    
+    for (let i = 0; i < count && startIdx + i < session.queue.length; i++) {
+      upNext.push(session.queue[startIdx + i]);
+    }
+    
+    return upNext;
+  }, [session]);
+
   // Resume session
   const resumeSession = useCallback(() => {
     const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
     if (savedSession) {
-      const parsed = JSON.parse(savedSession);
-      setSession(parsed);
-      if (parsed.queue[parsed.current_index]) {
-        setCurrentVideo(parsed.queue[parsed.current_index]);
+      try {
+        const parsed = JSON.parse(savedSession);
+        setSession(parsed);
+        if (parsed.queue[parsed.current_index]) {
+          setCurrentVideo(parsed.queue[parsed.current_index]);
+        }
+      } catch (e) {
+        console.error("Failed to restore playback session:", e);
       }
     }
   }, []);
@@ -620,30 +641,6 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     exhaustedPoolRef.current.clear();
   }, []);
-
-  // Get up next videos
-  const getUpNext = useCallback((count: number = 5): VideoItem[] => {
-    if (!session) return [];
-    
-    const upNextVideos: VideoItem[] = [];
-    let idx = session.current_index + 1;
-    
-    while (upNextVideos.length < count && idx < session.queue.length) {
-      upNextVideos.push(session.queue[idx]);
-      idx++;
-    }
-    
-    // If repeat all and not enough, wrap around
-    if (session.repeat === "all" && upNextVideos.length < count) {
-      idx = 0;
-      while (upNextVideos.length < count && idx < session.current_index) {
-        upNextVideos.push(session.queue[idx]);
-        idx++;
-      }
-    }
-    
-    return upNextVideos;
-  }, [session]);
 
   return (
     <VideoPlaybackContext.Provider

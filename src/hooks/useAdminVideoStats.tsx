@@ -63,39 +63,28 @@ export const useAdminVideoStats = (
         const today = new Date().toISOString().split("T")[0];
         
         // Total videos count
-        const { count: totalVideos } = await supabase
-          .from("videos")
+        const { count: totalVideos } = await (supabase
+          .from("videos") as any)
           .select("*", { count: "exact", head: true });
 
         // Today's uploads
-        const { count: todayUploads } = await supabase
-          .from("videos")
+        const { count: todayUploads } = await (supabase
+          .from("videos") as any)
           .select("*", { count: "exact", head: true })
           .gte("created_at", today);
 
-        // Unique uploaders
-        const { data: uniqueUploadersData } = await supabase
-          .from("videos")
-          .select("user_id");
+        // Unique uploaders via channels
+        const { data: uniqueUploadersData } = await (supabase
+          .from("videos") as any)
+          .select("channel_id");
         
-        const uniqueUploaders = new Set(uniqueUploadersData?.map(v => v.user_id) || []).size;
-
-        // Total file size (only from videos that have file_size)
-        const { data: fileSizeData } = await supabase
-          .from("videos")
-          .select("file_size")
-          .not("file_size", "is", null);
-        
-        const totalFileSize = fileSizeData?.reduce((sum, v) => sum + (v.file_size || 0), 0) || 0;
-        const avgFileSizeBytes = fileSizeData && fileSizeData.length > 0 
-          ? totalFileSize / fileSizeData.length 
-          : 0;
+        const uniqueUploaders = new Set(uniqueUploadersData?.map((v: any) => v.channel_id) || []).size;
 
         setSummary({
           totalVideos: totalVideos || 0,
-          totalFileSize,
+          totalFileSize: 0,
           todayUploads: todayUploads || 0,
-          avgFileSizeBytes,
+          avgFileSizeBytes: 0,
           totalUploaders: uniqueUploaders,
         });
 
@@ -103,23 +92,24 @@ export const useAdminVideoStats = (
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
-        const { data: videosForStats } = await supabase
-          .from("videos")
-          .select("created_at, user_id, file_size")
+        const { data: videosForStats } = await (supabase
+          .from("videos") as any)
+          .select("created_at, channel_id")
           .gte("created_at", thirtyDaysAgo.toISOString());
 
         // Group by date
         const statsMap = new Map<string, { count: number; uploaders: Set<string>; size: number }>();
         
-        videosForStats?.forEach(video => {
+        videosForStats?.forEach((video: any) => {
           const date = video.created_at.split("T")[0];
           if (!statsMap.has(date)) {
             statsMap.set(date, { count: 0, uploaders: new Set(), size: 0 });
           }
           const stat = statsMap.get(date)!;
           stat.count++;
-          stat.uploaders.add(video.user_id);
-          stat.size += video.file_size || 0;
+          if (video.channel_id) {
+            stat.uploaders.add(video.channel_id);
+          }
         });
 
         // Fill in all 30 days
@@ -139,25 +129,23 @@ export const useAdminVideoStats = (
         setDailyStats(dailyStatsArray);
 
         // Fetch videos with filters
-        let query = supabase
-          .from("videos")
+        let query = (supabase
+          .from("videos") as any)
           .select(`
             id,
             title,
             description,
             video_url,
             thumbnail_url,
-            file_size,
             duration,
             view_count,
             created_at,
             category,
-            user_id,
-            profiles!videos_user_id_fkey (
+            channel_id,
+            channels (
               id,
-              display_name,
-              avatar_url,
-              username
+              user_id,
+              name
             )
           `, { count: "exact" })
           .order("created_at", { ascending: false });
@@ -191,16 +179,16 @@ export const useAdminVideoStats = (
             description: video.description,
             videoUrl: video.video_url,
             thumbnailUrl: video.thumbnail_url,
-            fileSize: video.file_size,
+            fileSize: null,
             duration: video.duration,
             viewCount: video.view_count || 0,
             createdAt: video.created_at,
             category: video.category,
             uploader: {
-              id: video.user_id,
-              displayName: video.profiles?.display_name,
-              avatarUrl: video.profiles?.avatar_url,
-              username: video.profiles?.username || "unknown",
+              id: video.channels?.user_id || video.channel_id,
+              displayName: video.channels?.name,
+              avatarUrl: null,
+              username: video.channels?.name || "unknown",
             },
           }));
           setVideos(formattedVideos);

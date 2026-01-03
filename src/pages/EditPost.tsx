@@ -36,15 +36,15 @@ const EditPost = () => {
 
   const fetchPost = async () => {
     try {
-      const { data, error } = await supabase
-        .from("posts")
+      const { data, error } = await (supabase
+        .from("posts" as any)
         .select("content, image_url, user_id")
         .eq("id", id)
-        .single();
+        .single() as any);
 
       if (error) throw error;
 
-      if (data.user_id !== user?.id) {
+      if ((data as any).user_id !== user?.id) {
         toast({
           title: "Lỗi",
           description: "Bạn không có quyền chỉnh sửa bài viết này",
@@ -54,9 +54,9 @@ const EditPost = () => {
         return;
       }
 
-      setContent(data.content);
-      setCurrentImageUrl(data.image_url);
-      setImagePreview(data.image_url);
+      setContent((data as any).content);
+      setCurrentImageUrl((data as any).image_url);
+      setImagePreview((data as any).image_url);
     } catch (error: any) {
       console.error("Error fetching post:", error);
       toast({
@@ -107,13 +107,13 @@ const EditPost = () => {
         }
       }
 
-      const { error } = await supabase
-        .from("posts")
+      const { error } = await (supabase
+        .from("posts" as any)
         .update({
           content: content.trim(),
           image_url: imageUrl,
         })
-        .eq("id", id);
+        .eq("id", id) as any);
 
       if (error) throw error;
 

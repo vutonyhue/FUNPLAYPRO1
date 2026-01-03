@@ -80,33 +80,33 @@ export const sendTip = async ({
     }
 
     // Record transaction in database with to_user_id for notifications
-    await supabase.from("wallet_transactions").insert({
+    await (supabase.from("wallet_transactions" as any).insert({
+      user_id: user.id,
+      type: 'tip',
+      amount: amount,
+      token_symbol: tokenSymbol,
+      tx_hash: txHash,
       from_address: fromAddress,
       to_address: toAddress,
-      from_user_id: user.id,
-      to_user_id: toUserId,
-      amount: amount,
-      token_type: tokenSymbol,
-      tx_hash: txHash,
       status: "completed",
-      video_id: videoId || null,
-    });
+      metadata: { video_id: videoId || null, to_user_id: toUserId },
+    }) as any);
 
     return { success: true, txHash };
   } catch (error: any) {
     // Record failed transaction
     if (txHash!) {
-      await supabase.from("wallet_transactions").insert({
+      await (supabase.from("wallet_transactions" as any).insert({
+        user_id: user.id,
+        type: 'tip',
+        amount: amount,
+        token_symbol: tokenSymbol,
+        tx_hash: txHash || "failed",
         from_address: fromAddress,
         to_address: toAddress,
-        from_user_id: user.id,
-        to_user_id: toUserId,
-        amount: amount,
-        token_type: tokenSymbol,
-        tx_hash: txHash || "failed",
         status: "failed",
-        video_id: videoId || null,
-      });
+        metadata: { video_id: videoId || null, to_user_id: toUserId },
+      }) as any);
     }
 
     throw new Error(error.message || "Transaction failed");

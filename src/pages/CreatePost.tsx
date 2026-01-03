@@ -81,14 +81,14 @@ const CreatePost = () => {
       }
 
       // Create post
-      const { error: insertError } = await supabase
-        .from("posts")
+      const { error: insertError } = await (supabase
+        .from("posts" as any)
         .insert({
           user_id: user.id,
           channel_id: channels.id,
           content,
           image_url: imageUrl,
-        });
+        }) as any);
 
       if (insertError) throw insertError;
 

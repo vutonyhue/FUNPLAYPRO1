@@ -34,13 +34,21 @@ const EditVideo = () => {
     try {
       const { data, error } = await supabase
         .from("videos")
-        .select("title, description, user_id")
+        .select(`
+          title, 
+          description, 
+          channel_id,
+          channels (
+            user_id
+          )
+        `)
         .eq("id", id)
         .single();
 
       if (error) throw error;
 
-      if (data.user_id !== user?.id) {
+      const channelUserId = (data as any)?.channels?.user_id;
+      if (channelUserId !== user?.id) {
         toast({
           title: "Lỗi",
           description: "Bạn không có quyền chỉnh sửa video này",
@@ -50,8 +58,8 @@ const EditVideo = () => {
         return;
       }
 
-      setTitle(data.title);
-      setDescription(data.description || "");
+      setTitle((data as any).title);
+      setDescription((data as any).description || "");
     } catch (error: any) {
       console.error("Error fetching video:", error);
       toast({

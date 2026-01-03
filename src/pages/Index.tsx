@@ -62,10 +62,11 @@ const Index = () => {
           video_url,
           view_count,
           created_at,
-          user_id,
+          channel_id,
           channels (
             name,
-            id
+            id,
+            user_id
           )
         `)
         .eq("is_public", true)
@@ -84,23 +85,23 @@ const Index = () => {
 
       // Fetch wallet addresses and avatars for all users
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(v => v.user_id))];
+        const userIds = [...new Set((data as any[]).map(v => v.channels?.user_id).filter(Boolean))];
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, wallet_address, avatar_url")
-          .in("id", userIds);
+          .select("user_id, wallet_address, avatar_url")
+          .in("user_id", userIds);
 
-        const profilesMap = new Map(profilesData?.map(p => [p.id, { wallet_address: p.wallet_address, avatar_url: p.avatar_url }]) || []);
+        const profilesMap = new Map(profilesData?.map(p => [p.user_id, { wallet_address: p.wallet_address, avatar_url: p.avatar_url }]) || []);
 
-        const videosWithProfiles = data.map(video => ({
+        const videosWithProfiles = (data as any[]).map(video => ({
           ...video,
           profiles: {
-            wallet_address: profilesMap.get(video.user_id)?.wallet_address || null,
-            avatar_url: profilesMap.get(video.user_id)?.avatar_url || null,
+            wallet_address: profilesMap.get(video.channels?.user_id)?.wallet_address || null,
+            avatar_url: profilesMap.get(video.channels?.user_id)?.avatar_url || null,
           },
         }));
 
-        setVideos(videosWithProfiles);
+        setVideos(videosWithProfiles as any);
       } else {
         setVideos([]);
       }

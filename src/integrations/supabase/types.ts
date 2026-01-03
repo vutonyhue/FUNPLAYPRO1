@@ -86,6 +86,48 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_logs: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: string
+          rewarded: boolean | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          rewarded?: boolean | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          rewarded?: boolean | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_logs_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_logs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -133,6 +175,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_reward_limits: {
+        Row: {
+          comment_count: number | null
+          created_at: string
+          date: string
+          id: string
+          like_count: number | null
+          share_count: number | null
+          total_earned: number | null
+          updated_at: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          comment_count?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          like_count?: number | null
+          share_count?: number | null
+          total_earned?: number | null
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          comment_count?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          like_count?: number | null
+          share_count?: number | null
+          total_earned?: number | null
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
       }
       event_registrations: {
         Row: {
@@ -568,6 +649,41 @@ export type Database = {
           },
         ]
       }
+      view_logs: {
+        Row: {
+          created_at: string
+          id: string
+          rewarded: boolean | null
+          user_id: string
+          video_id: string
+          watch_duration: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rewarded?: boolean | null
+          user_id: string
+          video_id: string
+          watch_duration?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rewarded?: boolean | null
+          user_id?: string
+          video_id?: string
+          watch_duration?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "view_logs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -609,6 +725,73 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      watch_history: {
+        Row: {
+          completed: boolean | null
+          id: string
+          last_position_seconds: number | null
+          user_id: string
+          video_id: string
+          watch_time_seconds: number | null
+          watched_at: string
+        }
+        Insert: {
+          completed?: boolean | null
+          id?: string
+          last_position_seconds?: number | null
+          user_id: string
+          video_id: string
+          watch_time_seconds?: number | null
+          watched_at?: string
+        }
+        Update: {
+          completed?: boolean | null
+          id?: string
+          last_position_seconds?: number | null
+          user_id?: string
+          video_id?: string
+          watch_time_seconds?: number | null
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_history_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_later: {
+        Row: {
+          added_at: string
+          id: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_later_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

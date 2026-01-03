@@ -41,8 +41,8 @@ export const useWatchHistory = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('watch_history')
+      const { data, error } = await (supabase
+        .from('watch_history' as any)
         .select(`
           id,
           video_id,
@@ -66,7 +66,7 @@ export const useWatchHistory = () => {
         `)
         .eq('user_id', user.id)
         .order('watched_at', { ascending: false })
-        .limit(100);
+        .limit(100) as any);
 
       if (error) {
         console.error('Error fetching watch history:', error);
@@ -114,8 +114,8 @@ export const useWatchHistory = () => {
     const completed = watchPercentage >= 90;
 
     try {
-      const { error } = await supabase
-        .from('watch_history')
+      const { error } = await (supabase
+        .from('watch_history' as any)
         .upsert({
           user_id: user.id,
           video_id: videoId,
@@ -125,7 +125,7 @@ export const useWatchHistory = () => {
           watched_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id,video_id',
-        });
+        }) as any);
 
       if (error) {
         console.error('Error updating watch progress:', error);
@@ -148,11 +148,11 @@ export const useWatchHistory = () => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
-        .from('watch_history')
+      const { error } = await (supabase
+        .from('watch_history' as any)
         .delete()
         .eq('user_id', user.id)
-        .eq('video_id', videoId);
+        .eq('video_id', videoId) as any);
 
       if (error) throw error;
 
@@ -179,10 +179,10 @@ export const useWatchHistory = () => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
-        .from('watch_history')
+      const { error } = await (supabase
+        .from('watch_history' as any)
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', user.id) as any);
 
       if (error) throw error;
 

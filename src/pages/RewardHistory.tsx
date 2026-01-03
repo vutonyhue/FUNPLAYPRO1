@@ -78,25 +78,24 @@ export default function RewardHistory() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("reward_transactions")
         .select(`
           id,
           amount,
-          reward_type,
+          type,
           created_at,
-          claimed,
+          reason,
           video_id
         `)
         .eq("user_id", user.id)
-        .eq("status", "success")
         .order("created_at", { ascending: false })
-        .limit(500);
+        .limit(500) as any);
 
       if (error) throw error;
 
       // Fetch video titles for transactions with video_id
-      const videoIds = [...new Set(data?.filter(t => t.video_id).map(t => t.video_id) || [])];
+      const videoIds = [...new Set((data as any[])?.filter(t => t.video_id).map(t => t.video_id) || [])];
       
       let videoMap = new Map<string, string>();
       if (videoIds.length > 0) {
@@ -107,19 +106,18 @@ export default function RewardHistory() {
         videoMap = new Map(videos?.map(v => [v.id, v.title]) || []);
       }
 
-      const enrichedData = data?.map(t => ({
+      const enrichedData = (data as any[])?.map(t => ({
         ...t,
         video_title: t.video_id ? videoMap.get(t.video_id) : undefined
       })) || [];
 
-      setTransactions(enrichedData);
+      setTransactions(enrichedData as any);
 
       // Calculate totals
       let earned = 0;
       let unclaimed = 0;
-      data?.forEach(t => {
+      (data as any[])?.forEach(t => {
         earned += Number(t.amount);
-        if (!t.claimed) unclaimed += Number(t.amount);
       });
       setTotalEarned(earned);
       setTotalUnclaimed(unclaimed);

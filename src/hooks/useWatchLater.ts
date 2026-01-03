@@ -38,8 +38,8 @@ export const useWatchLater = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('watch_later')
+      const { data, error } = await (supabase
+        .from('watch_later' as any)
         .select(`
           id,
           video_id,
@@ -59,7 +59,7 @@ export const useWatchLater = () => {
           )
         `)
         .eq('user_id', user.id)
-        .order('added_at', { ascending: false });
+        .order('added_at', { ascending: false }) as any);
 
       if (error) {
         console.error('Error fetching watch later:', error);
@@ -97,12 +97,12 @@ export const useWatchLater = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('watch_later')
+      const { error } = await (supabase
+        .from('watch_later' as any)
         .insert({
           user_id: user.id,
           video_id: videoId,
-        });
+        }) as any);
 
       if (error) {
         if (error.code === '23505') {
@@ -137,11 +137,11 @@ export const useWatchLater = () => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
-        .from('watch_later')
+      const { error } = await (supabase
+        .from('watch_later' as any)
         .delete()
         .eq('user_id', user.id)
-        .eq('video_id', videoId);
+        .eq('video_id', videoId) as any);
 
       if (error) throw error;
 

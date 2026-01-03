@@ -40,12 +40,11 @@ const LikedVideos = () => {
     setLoading(true);
     try {
       // Get liked video IDs
-      const { data: likesData, error: likesError } = await supabase
+      const { data: likesData, error: likesError } = await (supabase
         .from("likes")
         .select("video_id")
         .eq("user_id", user.id)
-        .eq("is_dislike", false)
-        .not("video_id", "is", null);
+        .not("video_id", "is", null) as any);
 
       if (likesError) throw likesError;
 
@@ -54,7 +53,7 @@ const LikedVideos = () => {
         return;
       }
 
-      const videoIds = likesData.map(l => l.video_id).filter(Boolean);
+      const videoIds = (likesData as any[]).map(l => l.video_id).filter(Boolean);
 
       // Fetch video details
       const { data: videosData, error: videosError } = await supabase
@@ -66,10 +65,11 @@ const LikedVideos = () => {
           video_url,
           view_count,
           created_at,
-          user_id,
+          channel_id,
           channels (
             name,
-            id
+            id,
+            user_id
           )
         `)
         .in("id", videoIds)
@@ -79,21 +79,21 @@ const LikedVideos = () => {
 
       if (videosData && videosData.length > 0) {
         // Fetch profiles for wallet_address and avatar
-        const userIds = [...new Set(videosData.map(v => v.user_id))];
+        const userIds = [...new Set((videosData as any[]).map(v => v.channels?.user_id).filter(Boolean))];
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, wallet_address, avatar_url")
-          .in("id", userIds);
+          .select("user_id, wallet_address, avatar_url")
+          .in("user_id", userIds);
 
         const profilesMap = new Map(
-          profilesData?.map(p => [p.id, { wallet_address: p.wallet_address, avatar_url: p.avatar_url }]) || []
+          profilesData?.map(p => [p.user_id, { wallet_address: p.wallet_address, avatar_url: p.avatar_url }]) || []
         );
 
-        const videosWithProfiles = videosData.map(video => ({
+        const videosWithProfiles = (videosData as any[]).map(video => ({
           ...video,
           profiles: {
-            wallet_address: profilesMap.get(video.user_id)?.wallet_address || null,
-            avatar_url: profilesMap.get(video.user_id)?.avatar_url || null,
+            wallet_address: profilesMap.get(video.channels?.user_id)?.wallet_address || null,
+            avatar_url: profilesMap.get(video.channels?.user_id)?.avatar_url || null,
           },
         })) as Video[];
 
